@@ -79,6 +79,10 @@ Focus on what's actionable today.
 - Note blockers — tasks where someone is waiting on the user
 - Check for recently assigned items the user may not have seen yet
 - If available, check sprint/cycle status for context on velocity
+- **Always include the issue title alongside the ID.** A bare ID like `ABC-123` is
+  meaningless without context. Format every issue/task reference as a markdown link with
+  both the ID and title: `[ABC-123: Fix login timeout](https://...)`. If the tool provides
+  a URL, use it; if not, still include the title inline: `ABC-123: Fix login timeout`.
 
 ### Email (Gmail, Outlook, etc.)
 
@@ -104,6 +108,16 @@ This means:
   meetings today." Include the actual times and deadlines.
 - **Surface the implicit.** If the user has 6 hours of meetings and a task due EOD, that's
   worth flagging — they'll need to find time somewhere. If two meetings overlap, say so.
+
+### Formatting issue and task references
+
+Across the entire brief — not just the project management section — every issue or task
+reference must include the title and link, not just the ID. Users don't have IDs memorized.
+
+- **With URL available**: `[ABC-123: Fix login timeout](https://linear.app/team/ABC-123)`
+- **Without URL**: `ABC-123: Fix login timeout`
+
+Never output a bare ID like `ABC-123` anywhere in the brief.
 
 ### Output Format
 
