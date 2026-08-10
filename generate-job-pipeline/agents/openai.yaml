@@ -1,0 +1,4 @@
+interface:
+  display_name: "Job Pipeline Generation"
+  short_description: "Find, verify, and deduplicate strong job leads"
+  default_prompt: "Use $generate-job-pipeline to find and verify new roles that match my candidate profile and constraints."
