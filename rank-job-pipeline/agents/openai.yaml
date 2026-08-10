@@ -1,0 +1,4 @@
+interface:
+  display_name: "Job Pipeline Ranking"
+  short_description: "Rank active job leads by expected application return"
+  default_prompt: "Use $rank-job-pipeline to rank the active roles in my job-search pipeline."
