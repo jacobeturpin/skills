@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tailor Resume"
+  short_description: "Create truthful, role-specific resume copies"
+  default_prompt: "Use $tailor-resume to tailor my base resume for this role while preserving its structure and formatting."
