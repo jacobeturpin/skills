@@ -1,6 +1,6 @@
 ---
 name: generate-job-pipeline
-description: Find, verify, deduplicate, rank, and optionally write back high-quality job leads from public job boards, portfolio talent networks, employer career sites, and ATS platforms. Use when asked to generate a job-search pipeline, run a recurring lead search, source roles from a specific board or URL, refresh a tracker with newly discovered openings, find roles matching a candidate profile and constraints, or reproduce a prior job-discovery workflow without resurfacing existing leads.
+description: Find, verify, deduplicate, rank, and optionally write back high-quality job leads from indexed ATS searches, supplied job or portfolio boards, and company career sites checked on configurable cadences. Use when asked to generate or schedule a job-search pipeline, crawl specified sources, refresh a tracker with newly discovered openings, or find current roles matching a candidate profile without resurfacing existing leads.
 ---
 
 # Generate Job Pipeline
@@ -14,11 +14,11 @@ Collect or infer the following runtime inputs:
 1. **Candidate evidence**: a resume, career profile, or concise summary of supported skills, leadership scope, domains, and accomplishments.
 2. **Target roles and domains**: desired titles, seniority, functions, industries, and technical themes.
 3. **Hard constraints**: required geography, work model, compensation floor, sponsorship or work-authorization needs, travel limits, and mandatory exclusions.
-4. **Discovery sources**: one or more public job-board URLs, employer lists, portfolio networks, ATS domains, or search targets.
+4. **Discovery sources**: one or more indexed-ATS search targets, public job-board URLs, portfolio networks, or company career sites. A source can include a stable source name, URL or search pattern, source type, and cadence such as daily, weekly, or monthly.
 5. **Deduplication source**: an existing tracker, prior-results file, database, or pasted list of companies, titles, stable job IDs, and posting URLs.
 6. **Output contract**: maximum lead count, required fields, ranking labels, and whether results should be written to a destination.
 
-Optional inputs include a freshness window, preferred company stages, excluded employers, allowed adjacent roles, acceptable qualification risks, and a destination table schema.
+Optional inputs include a freshness window, preferred company stages, excluded employers, allowed adjacent roles, acceptable qualification risks, a destination table schema, and persistent run state containing source-level last-attempted and last-successfully-checked timestamps.
 
 If candidate evidence, a material hard constraint, or the intended discovery source is missing, ask for it. If write-back is requested but the destination or schema is missing, ask for those details before editing. Ask no more than three concise questions at once, and proceed with explicit assumptions when the missing detail would not materially change the result.
 
@@ -36,6 +36,7 @@ Summarize the following before searching:
 - compensation rule
 - maximum results
 - deduplication rule
+- source types, cadences, and which sources are due this run
 - requested destination and whether edits are authorized
 
 Distinguish hard gates from preferences. A preference influences ranking; a hard gate excludes a role.
@@ -61,20 +62,33 @@ Read the deduplication source before discovery when available. Build canonical k
 
 Support both exact-posting deduplication and company-level deduplication. Use the user's stated rule. If none is supplied, deduplicate exact postings and flag multiple openings at one company rather than silently dropping them.
 
-### 3. Discover candidates efficiently
+### 3. Build the source plan
+
+Normalize the supplied discovery inputs into a runtime source manifest. Each source should have:
+
+- a stable source key and human-readable name
+- one of these types: `indexed-ats-search`, `job-board`, or `company-careers`
+- a URL, domain, company career page, or search pattern
+- a cadence such as `daily`, `weekly`, or `monthly`
+- last attempted, last successfully checked, and next-due timestamps when persistent run state is available
+
+Use the user's cadence when supplied. If a company-specific source has no cadence, default to weekly rather than inventing a priority tier. On a bootstrap run, or when explicitly asked to ignore cadence, check every in-scope source. Otherwise, check only sources that are due. Base the next due date on the last successful check, not merely an attempted visit. Record an inaccessible or incomplete source as attempted but not successfully checked.
+
+Keep the source manifest and run state outside the skill directory. They may live in a tracker, task memory, database, or user-supplied file.
+
+### 4. Discover candidates by source type
 
 Use live internet or browser access because job availability is time-sensitive.
 
-- Start with the user-supplied board or portfolio network.
-- Use its visible search, filters, sorting, or category pages when available.
-- Search several narrow title/domain combinations instead of one broad query.
-- For ATS discovery, use focused domain filters for relevant public systems such as Greenhouse, Lever, Ashby, Workday, and Rippling.
-- Prefer newly posted, remote-compatible, and compensation-visible results when those match the search contract.
-- Record the discovery URL separately from the canonical employer application URL.
+- **Indexed ATS searches**: use several narrow search-engine queries that combine relevant titles or themes with ATS domains. Rotate combinations when useful rather than relying on one broad Boolean query. Search results and snippets are discovery evidence only.
+- **Supplied job boards**: start with the user's provided URLs. Use visible filters, sorting, taxonomies, and new-since-last-run views when available. Portfolio and venture-capital boards can improve company coverage, but their classifications may be noisy and their listings may overlap ATS results.
+- **Company career sites**: visit each due company's official careers page or linked job board. Search the whole board for relevant openings instead of assuming the supplied landing page is a complete listing. Use daily, weekly, or monthly cadence from the source manifest to distribute checks across recurring runs.
+
+Across all source types, prefer newly posted, location-compatible, and compensation-visible results when those match the contract. Record the discovery source and URL separately from the canonical employer application URL. Do not let one high-volume board crowd out the other due source types; complete reasonable coverage of each due source group before expanding a single source.
 
 Do not treat a portfolio board, aggregator, search snippet, or social post as final evidence.
 
-### 4. Verify every shortlisted opening
+### 5. Verify every shortlisted opening
 
 Open the primary employer careers page or direct ATS posting for each candidate. Confirm:
 
@@ -92,7 +106,7 @@ Remote does not automatically mean every country or state. When the candidate mu
 
 Prefer current first-party evidence. Use secondary evidence only when the employer page is inaccessible, label the limitation, and do not invent missing requirements or compensation.
 
-### 5. Apply hard gates
+### 6. Apply hard gates
 
 Exclude openings that fail any stated hard constraint, including:
 
@@ -107,7 +121,7 @@ Treat preferred qualifications as risks rather than automatic exclusions. Keep a
 
 For undisclosed compensation, never invent a range. Include the role only if it remains plausibly aligned with the requested level and explicitly state compensation uncertainty as a risk.
 
-### 6. Evaluate and rank
+### 7. Evaluate and rank
 
 Compare each surviving role against candidate evidence across:
 
@@ -127,7 +141,7 @@ Use simple labels unless the user requests numeric scoring:
 
 Rank strongest first. Do not pad the output to reach the maximum.
 
-### 7. Present the results
+### 8. Present the results
 
 For every lead include:
 
@@ -142,7 +156,15 @@ For every lead include:
 
 Also report material exclusion categories and any provisional evidence. Avoid large comparison tables unless the user requests one.
 
-### 8. Write back only when authorized
+For recurring runs, also provide a concise coverage summary:
+
+- which source groups were checked
+- which scheduled sources were due, successful, incomplete, or inaccessible
+- whether zero viable leads is the genuine result after applying the filters
+
+Do not lower the quality threshold to produce a non-empty result.
+
+### 9. Persist results and write back only when authorized
 
 Discovery and ranking do not automatically authorize tracker edits.
 
@@ -155,6 +177,8 @@ When the user explicitly requests write-back:
 5. use stable posting IDs and direct application URLs
 6. write the smallest coherent batch
 7. reread the exact written rows and verify values, links, dates, and formats
+
+When persistent run state is available and updating it is authorized, record source-level last-attempted, last-successfully-checked, next-due, and outcome values. Advance `last successfully checked` only after reasonable coverage of that source completes. Keep lead deduplication keys canonical across every discovery mode so the same posting found through search, a portfolio board, and an employer site is presented only once.
 
 Do not redesign a destination schema without approval. Leave unavailable compensation blank or use the destination's established representation for `not disclosed`. Do not submit applications, contact employers, or change application statuses unless explicitly authorized.
 
